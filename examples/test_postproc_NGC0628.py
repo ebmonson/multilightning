@@ -13,7 +13,7 @@ import numpy as np
 import h5py
 import corner
 import matplotlib.pyplot as plt
-plt.style.use('ebm-dejavu')
+#plt.style.use('ebm-dejavu')
 
 def main():
 
