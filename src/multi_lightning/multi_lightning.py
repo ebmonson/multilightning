@@ -100,7 +100,7 @@ class MultiLightning:
             self.lgh.print_params(verbose=verbose)
         else:
             for i, l in enumerate(self.lgh):
-                print('Region %d:' % (i+1))
+                print('"%s":' % (self.reg_names[i]))
                 l.print_params(verbose=verbose)
 
     def get_model_log_prior(self, params, priors):
@@ -136,9 +136,13 @@ class MultiLightning:
                     # The 'connection'-type priors require both parameters and work slightly different
                     # on the backend, so they're separated here.
                     if ('connection' not in reg_priors[j].model_name):
-                        prior_prob *= reg_priors[j](reg_params[:,j])
+                        p = reg_priors[j](reg_params[:,j])
+                        # prior_prob *= reg_priors[j](reg_params[:,j])
                     else:
-                        prior_prob *= reg_priors[j].evaluate(reg_params[:,j], params[reg_priors[j].target_name][:,reg_priors[j].param_idx])
+                        p = reg_priors[j].evaluate(reg_params[:,j], params[reg_priors[j].target_name][:,reg_priors[j].param_idx])
+                        # prior_prob *= reg_priors[j].evaluate(reg_params[:,j], params[reg_priors[j].target_name][:,reg_priors[j].param_idx])
+                    # print(reg_priors[j].model_name, p)
+                    prior_prob *= p
 
         lnprior_prob = np.zeros_like(prior_prob)
         lnprior_prob[prior_prob == 0] = -1*np.inf
@@ -313,6 +317,31 @@ class MultiLightning:
 
         return params
 
+    def init_from_priors(self, priors, Nwalkers):
+        '''Sample an initial state vector for emcee from the priors.
+
+        Parameters
+        ----------
+        priors : dict
+            A dictionary keyed on `reg_names`, where each entry is a list of the `Nparamsx`-many prior functions for
+            each region. Prior functions should be specified by lightning.priors objects. Any prior == None is assumed
+            to indicate a constant parameter.
+        Nwalkers : int
+            Number of MCMC samplers for the emcee affine-invariant algorithm
+
+        '''
+
+        x0s = []
+        for reg in self.reg_names:
+            for pr in priors[reg]:
+                if (pr is not None) and (pr.model_name != 'constant') and (pr.model_name != 'fixed-connection'):
+                    x0s.append(list(pr.sample(Nwalkers)))
+
+        x0 = np.stack(x0s, axis=-1)
+        #print(x0.shape)
+
+        return x0
+
     def fit(self, p0, priors, Nwalkers=64, Nsteps=30000, init_sigma=1e-3, progress=True, savefile=None):
         '''Fit the multi-region model with emcee.
 
@@ -350,13 +379,43 @@ class MultiLightning:
 
         # Initialize
         rng = np.random.default_rng()
-        x0_seed = []
-        for reg in self.reg_names:
-            var_mask = (~const_dim[reg]) & (~fixed_dim[reg])
-            x0_seed = x0_seed + list((p0[reg].flatten())[var_mask])
-        x0_seed = np.array(x0_seed)
+        x0 = self.init_from_priors(priors, Nwalkers)
+        #print(x0.shape)
+        logprob_init = _log_prob_func(x0)
+        ob_init = ~np.isfinite(logprob_init)
+        #print(np.count_nonzero(ob_init))
+        first_state_ok = ~np.any(ob_init)
+        # The sampling for any normal priors (incl. the NormalConnection prior)
+        # may send some walkers out of bounds; we resample if that's the case.
+        # The number of times we try to resample is arbitrarily set to the number of
+        # walkers, just because this seems to work OK.
+        # If any of the walkers start out of bounds, resample them.
+        timeout = 0
+        while (not first_state_ok) and (timeout < Nwalkers):
+            x0[ob_init] = self.init_from_priors(priors, np.count_nonzero(ob_init))
+            logprob_init = _log_prob_func(x0)
+            ob_init = ~np.isfinite(logprob_init)
+            first_state_ok = ~np.any(ob_init)
+            timeout += 1
 
-        x0 = rng.normal(loc=0, scale=init_sigma, size=(Nwalkers, len(x0_seed))) + x0_seed[None,:]
+        # first_state_ok = False
+        # timeout = 0
+        # while (not first_state_ok) & (timeout < 5):
+        #     x0_seed = []
+        #     for reg in self.reg_names:
+        #         var_mask = (~const_dim[reg]) & (~fixed_dim[reg])
+        #         x0_seed = x0_seed + list((p0[reg].flatten())[var_mask])
+        #     x0_seed = np.array(x0_seed)
+        #
+        #     x0 = rng.normal(loc=0, scale=init_sigma, size=(Nwalkers, len(x0_seed))) + x0_seed[None,:]
+        #     logprob_init = _log_prob_func(x0)
+        #     ob_init = ~np.isfinite(logprob_init)
+        #     print(np.count_nonzero(ob_init))
+        #     first_state_ok = ~np.any(ob_init)
+        #     timeout += 1
+
+        if (not first_state_ok):
+            raise ValueError("Unable to sample a usable initial state MCMC. Are your priors too restrictive?")
 
         if savefile is not None:
             backend = emcee.backends.HDFBackend(savefile)
@@ -364,7 +423,7 @@ class MultiLightning:
         else:
             backend = None
 
-        sampler = emcee.EnsembleSampler(Nwalkers, len(x0_seed), _log_prob_func, vectorize=True, backend=backend)
+        sampler = emcee.EnsembleSampler(Nwalkers, x0.shape[1], _log_prob_func, vectorize=True, backend=backend)
         state = sampler.run_mcmc(x0, Nsteps, progress=progress)
 
         return sampler
