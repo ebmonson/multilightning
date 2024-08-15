@@ -1,5 +1,6 @@
 import numpy as np
 from lightning.priors.base import AnalyticPrior
+from scipy.special import erfinv
 
 class NormalConnection(AnalyticPrior):
     '''
