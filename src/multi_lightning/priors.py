@@ -3,8 +3,17 @@ from lightning.priors.base import AnalyticPrior
 from scipy.special import erfinv
 
 class NormalConnection(AnalyticPrior):
-    '''
-    Treats the distance dx = x1 - x2 as a Normal random variable with dx ~ N(mu, sigma)
+    r'''Treats the distance :math:`\delta x = x_1 - x_2` as a Normal random variable with :math:`\delta x \sim N(\mu, \sigma)`
+
+    Parameters
+    ----------
+    params : array-like, (2,)
+        Mean and sigma of the normal distribution.
+    target_name : str
+        Name of region to target
+    param_idx : int
+        Index of parameter in region model.
+
     '''
 
     type = 'analytic'
@@ -23,11 +32,20 @@ class NormalConnection(AnalyticPrior):
         self.param_idx = param_idx # what is the index of the parameter in that region (sorry)
 
     def evaluate(self, x1, x2):
-        '''
-        Return an array with the same shape as ``x1`` that is
-        equal to::
+        r'''Calculate prior probability.
 
-        p = 1 / [sigma * sqrt(2 * pi)] * exp[-1 * (x - mu)**2 / sigma**2)]
+        Returns an array with the same shape as ``x1`` that is
+        equal to
+
+        .. math::
+
+            p = \frac{1}{\sigma \sqrt{2 \pi}} \exp[- (\delta x - \mu)^2 / \sigma^2)]
+
+        where
+
+        .. math::
+
+            \delta x = x_1 - x_2
 
         '''
 
@@ -43,11 +61,20 @@ class NormalConnection(AnalyticPrior):
         return p
 
     def quantile(self, q):
-        '''
-        Return an array with the same shape as ``q`` that is
-        equal to::
+        r'''Calculate quantile function:
 
-        dx = mu + sigma * sqrt(2) * erfinv(2 * q - 1)
+        Return an array with the same shape as ``q`` that is
+        equal to
+
+        .. math::
+
+            \delta x = \mu + \sigma \sqrt{2} {\rm erfinv}(2 q - 1)
+
+        where
+
+        .. math::
+
+            \delta x = x_1 - x_2
 
         '''
 
@@ -59,9 +86,17 @@ class NormalConnection(AnalyticPrior):
         return dx
 
 class UniformConnection(AnalyticPrior):
-    '''
-    Treats the absolute distance dx = |x1 - x2| as a Uniform random variable with dx ~ U(0, Dmax), i.e., x2 can be at
-    most Dmax from x1.
+    r'''Treats the absolute distance :math:`dx = |x_1 - x_2|` as a Uniform random variable with `dx ~ U(0, D_{max})`, i.e., x2 can be at most Dmax from x1.
+
+    Parameters
+    ----------
+    params : array-like, (2,)
+        Lower and upper bound of the uniform distribution.
+    target_name : str
+        Name of region to target
+    param_idx : int
+        Index of parameter in region model.
+
     '''
 
     type = 'analytic'
@@ -79,9 +114,10 @@ class UniformConnection(AnalyticPrior):
         self.param_idx = param_idx # what is the index of the parameter in that region (sorry)
 
     def evaluate(self, x1, x2):
-        '''
-        Return an array with the same shape as x1 that's equal to ``1 / Dmax``
-        wherever x is in [a,b) and 0 elsewhere.
+        r'''Calculate prior probability.
+
+        Return an array with the same shape as x1 that's equal to :math:`1 / D_{max}`
+        wherever :math:`dx` is in :math:`[a,b)` and 0 elsewhere.
         '''
 
         Dmax = self.params
@@ -96,8 +132,9 @@ class UniformConnection(AnalyticPrior):
         return p
 
     def quantile(self, q):
-        '''
-        Return an array with the same shape as q that's equal to ``q * (Dmax)``.
+        '''Calculate quantile function.
+
+        Return an array with the same shape as q that's equal to :math:`q D_{max}`.
         '''
 
         Dmax = self.param
@@ -107,8 +144,17 @@ class UniformConnection(AnalyticPrior):
         return dx
 
 class FixedConnection(AnalyticPrior):
-    '''
-    Dummy prior. We use this to hold a parameter value fixed to a parameter from another region.
+    '''Dummy prior. We use this to hold a parameter value fixed to a parameter from another region.
+
+    Note that this prior doesn't fully implement ``lightning.priors.AnalyticPrior`` and can't
+    be used to sample
+
+    Parameters
+    ----------
+    target_name : str
+        Name of region to target
+    param_idx : int
+        Index of parameter in region model.
     '''
 
     type = 'analytic'
@@ -125,9 +171,10 @@ class FixedConnection(AnalyticPrior):
         self.param_idx = param_idx # what is the index of the parameter in that region (sorry)
 
     def evaluate(self, x1, x2):
+        '''Returns x1 == x2'''
 
         return np.array(x1 == x2, dtype='int')
 
     def quantile(self, q):
-
+        '''Not defined'''
         return None

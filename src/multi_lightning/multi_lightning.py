@@ -5,8 +5,37 @@ import astropy.units as u
 import emcee
 
 class MultiLightning:
-    '''A class interface to fit "multi-region" spectral energy distributions: SEDs where multiple regions
-    are resolved in some, but not all of the available bandpasses.
+    r'''A class interface to fit "multi-region" spectral energy distributions: SEDs where multiple regions are resolved in some, but not all of the available bandpasses.
+
+    Parameters
+    ----------
+    lgh : Lightning object or list of Nregions Lightning objects
+        If a single Lightning object, the same model will be applied to each region (albeit with different parameters)
+        and the ``Nregions`` keyword must be set. More generally, this can by a list of Lightning objects, one per region.
+        Things like the redshift, luminosity distance, and filter set are expected to agree between different objects.
+    flux_obs : np.ndarray, (Nregions+1, Nfilters), float
+        An array giving the observed fluxes in mJy: the first row should contain the unresolved "global" fluxes, and
+        subsequent rows should contain the resolved fluxes for each region. Missing or NA entries should be set to NaN.
+        As an example, suppose we have 2 regions with 4 resolved optical measurements and 2 unresolved IR measurements.
+        Our flux array would be structured like::
+
+                              Opt1   Opt2   Opt3   Opt4  IR1  IR2
+            unresolved     [[  NaN,   NaN,   NaN,   NaN, 0.2,   1],
+            region1         [0.003, 0.002, 0.004, 0.002, NaN, NaN],
+            region2         [  NaN, 0.001, 0.002, 0.001, NaN, NaN]]
+
+
+        where we've supposed that region2 is undetected in band Opt1.
+    flux_unc : np.ndarray, (Nregions+1, Nfilters), float
+        An array giving the uncertainties on the fluxes in mJy. Here, missing and NA entries should be set to 0.0.
+    model_unc : float
+        Fractional model uncertainty to apply to all bands.
+    Nregions : int
+        Number of resolved regions. Only necessary if ``lgh`` is a single Lightning object.
+    reg_names : list of str
+        Names for individual regions, e.g. 'core', 'disk', 'clumpA', 'clumpB', etc. Defaults to 'reg1', 'reg2', etc.
+        if not set.
+
     '''
 
     def __init__(self,
@@ -17,35 +46,6 @@ class MultiLightning:
                  Nregions=None,
                  reg_names=None
                  ):
-        '''Constructor.
-
-        Parameters
-        ----------
-        lgh : Lightning object or list of Nregions Lightning objects
-            If a single Lightning object, the same model will be applied to each region (albeit with different parameters)
-            and the `Nregions` keyword must be set. More generally, this can by a list of Lightning objects, one per region.
-            Things like the redshift, luminosity distance, and filter set are expected to agree between different objects.
-        flux_obs : np.ndarray, (Nregions+1, Nfilters), float
-            An array giving the observed fluxes in mJy: the first row should contain the unresolved "global" fluxes, and
-            subsequent rows should contain the resolved fluxes for each region. Missing or NA entries should be set to NaN.
-            As an example, suppose we have 2 regions with 4 resolved optical measurements and 2 unresolved IR measurements.
-            Our flux array would be structured like
-                              Opt1   Opt2   Opt3   Opt4  IR1  IR2
-            unresolved     [[  NaN,   NaN,   NaN,   NaN, 0.2,   1],
-            region1         [0.003, 0.002, 0.004, 0.002, NaN, NaN],
-            region2         [  NaN, 0.001, 0.002, 0.001, NaN, NaN]]
-
-            where we've supposed that region2 is undetected in band Opt1.
-        flux_unc : np.ndarray, (Nregions+1, Nfilters), float
-            An array giving the uncertainties on the fluxes in mJy. Here, missing and NA entries should be set to 0.0.
-        model_unc : float
-            Fractional model uncertainty to apply to all bands.
-        Nregions : int
-            Number of resolved regions. Only necessary if `lgh` is a single Lightning object.
-        reg_names : list of str
-            Names for individual regions, e.g. 'core', 'disk', 'clumpA', 'clumpB', etc. Defaults to 'reg1', 'reg2', etc.
-            if not set.
-        '''
 
         try:
             self.Nregions = len(lgh)
@@ -109,17 +109,19 @@ class MultiLightning:
         Parameters
         ----------
         params : dict
-            A dictionary keyed on `reg_names`, where each entry is a numpy array with dimensions (Nmodels, Nparamsx),
+            A dictionary keyed on ``reg_names``, where each entry is a numpy array with dimensions (Nmodels, Nparamsx),
             giving the parameters for each region.
-            Note that in the most general case `Nparamsx` can be different for each region, while the first `Nmodels`
+            Note that in the most general case ``Nparamsx`` can be different for each region, while the first ``Nmodels``
             axis is the vectorization axis, and should be the same for each region.
         priors : dict
-            A dictionary keyed on `reg_names`, where each entry is a list of the `Nparamsx`-many prior functions for
+            A dictionary keyed on ``reg_names``, where each entry is a list of the ``Nparamsx``-many prior functions for
             each region. Prior functions should be specified by lightning.priors objects.
 
-        It's pretty self evident how you might have parameters *loosely* connected between regions (e.g. region2's tauV
-        is only allowed to be so far away from region1's) but harder to figure out how to *exactly* connect them, since
-        this is not so much a prior as a reduction in dimensionality.
+        Returns
+        -------
+        lnprior_prob : np.ndarray, (Nmodels,)
+            Prior log-probabilities
+
         '''
 
         Nmodels = params[self.reg_names[0]].shape[0]
@@ -156,10 +158,15 @@ class MultiLightning:
         Parameters
         ----------
         params : dict
-            A dictionary keyed on `reg_names`, where each entry is a numpy array with dimensions (Nmodels, Nparamsx),
+            A dictionary keyed on ``reg_names``, where each entry is a numpy array with dimensions (Nmodels, Nparamsx),
             giving the parameters for each region.
-            Note that in the most general case `Nparamsx` can be different for each region, while the first `Nmodels`
+            Note that in the most general case ``Nparamsx`` can be different for each region, while the first ``Nmodels``
             axis is the vectorization axis, and should be the same for each region.
+
+        Returns
+        -------
+        lnlike : np.ndarray, (Nmodels,)
+            -0.5 * chi2
 
         '''
 
@@ -203,15 +210,21 @@ class MultiLightning:
         Parameters
         ----------
         params : dict
-            A dictionary keyed on `reg_names`, where each entry is a numpy array with dimensions (Nmodels, Nparamsx),
+            A dictionary keyed on ``reg_names``, where each entry is a numpy array with dimensions (Nmodels, Nparamsx),
             giving the parameters for each region.
-            Note that in the most general case `Nparamsx` can be different for each region, while the first `Nmodels`
+            Note that in the most general case ``Nparamsx`` can be different for each region, while the first ``Nmodels``
             axis is the vectorization axis, and should be the same for each region.
         priors : dict
-            A dictionary keyed on `reg_names`, where each entry is a list of the `Nparamsx`-many prior functions for
+            A dictionary keyed on ``reg_names``, where each entry is a list of the ``Nparamsx``-many prior functions for
             each region. Prior functions should be specified by lightning.priors objects.
         p_bound : float
             The magnitude of the log-probability of zero (default: np.inf)
+
+        Returns
+        -------
+        log_prob : np.ndarray, (Nmodels,)
+            Log probabilities
+
         '''
 
         Nmodels = params[self.reg_names[0]].shape[0]
@@ -259,17 +272,19 @@ class MultiLightning:
             emcee's working array, with dimensions set by the number of walkers and the number of sampled
             dimensions in the model.
         p0 : dict
-            A dictionary keyed on `reg_names`, where each entry is an array giving the initial parameters for
+            A dictionary keyed on ``reg_names``, where each entry is an array giving the initial parameters for
             each region. We need this here to figure out what values the contant parameters have.
         priors : dict
-            A dictionary keyed on `reg_names`, where each entry is a list of the `Nparamsx`-many prior functions for
+            A dictionary keyed on ``reg_names``, where each entry is a list of the ``Nparamsx``-many prior functions for
             each region. Prior functions should be specified by lightning.priors objects. Any prior == None is assumed
             to indicate a constant parameter. We need these here to know which parameters are constant and which are
             fixed to another region.
 
         Returns
         -------
-        The parameters (including constant and fixed parameters) sorted into a dictionary, keyed on `reg_names`.
+        params : dict
+            The parameters (including constant and fixed parameters) sorted into a dictionary, keyed on ``reg_names``.
+            Each entry in the dict has shape (Nwalkers, Nparamsx)
 
         '''
 
@@ -323,11 +338,16 @@ class MultiLightning:
         Parameters
         ----------
         priors : dict
-            A dictionary keyed on `reg_names`, where each entry is a list of the `Nparamsx`-many prior functions for
+            A dictionary keyed on ``reg_names``, where each entry is a list of the ``Nparamsx``-many prior functions for
             each region. Prior functions should be specified by lightning.priors objects. Any prior == None is assumed
             to indicate a constant parameter.
         Nwalkers : int
             Number of MCMC samplers for the emcee affine-invariant algorithm
+
+        Returns
+        -------
+        x0 : np.ndarray, (Nwalkers, Ndim)
+            Sampled initial state for emcee
 
         '''
 
@@ -348,15 +368,25 @@ class MultiLightning:
         Parameters
         ----------
         priors : dict
-            A dictionary keyed on `reg_names`, where each entry is a list of the `Nparamsx`-many prior functions for
+            A dictionary keyed on ``reg_names``, where each entry is a list of the ``Nparamsx``-many prior functions for
             each region. Prior functions should be specified by lightning.priors objects. Any prior == None is assumed
             to indicate a constant parameter.
         Nwalkers : int
-            Number of MCMC samplers for the emcee affine-invariant algorithm (default: 64)
+            Number of MCMC samplers for the emcee affine-invariant algorithm (Default: 64)
         Nsteps : int
             Number of steps to run the MCMC (default: 30000)
         init_sigma : float
-            Sigma for gaussian ball initialization (default: 1e-3)
+            Sigma for gaussian ball initialization (default: 1e-3) *UNUSED*
+        progress : bool
+            If ``True``, print a ``tqdm`` progress bar. (Default: True)
+        savefile : str
+            Filename to use with the ``emcee`` HDF5 backend (if any). (Default: None)
+
+
+        Returns
+        -------
+        sampler : emcee.EnsembleSampler
+
         '''
 
         const_dim = {reg: np.array([pr is None for pr in priors[reg]]) for reg in self.reg_names}
@@ -367,7 +397,7 @@ class MultiLightning:
         def _log_prob_func(x):
             '''
             Because of the way emcee works, our log prob function can only accept
-            a single array `x` of parameter values that has shape (Nmodels, sum(Nparam - Nconst))
+            a single array ``x`` of parameter values that has shape (Nmodels, sum(Nparam - Nconst))
             where the first axis is the arbitrary vectorization axis and the second is all of the model
             parameters, minus constant parameters, flattened into one axis. We must reconstruct the dictionary.
             Somehow.
