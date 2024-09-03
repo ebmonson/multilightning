@@ -24,10 +24,33 @@ This method could be extended to:
 - Separately modeling the nucleus and disk in nearby AGN.
 - Determining the ages of individual star formation regions which are not separated in IR imaging?
 
+Installing
+----------
+
+Before installing this package, you should install `lightning` by following the instructions in its documentation, optionally
+creating a new virtual environment in e.g. `conda` to install it in.
+
+Then run::
+
+    git clone https://github.com/ebmonson/multilightning.git
+    cd multilightning
+
+    pip install . --no-deps
+
+
+to clone this repository and install the code locally.
+
+.. note::
+
+    I may not go to the extra step of uploading this package to pypi/conda-forge since it is a niche, hacky
+    thing on top of ``lightning``.
+
+
+Documentation
+-------------
 
 .. toctree::
    :maxdepth: 1
-   :caption: Documentation
 
    recipe
    examples/NGC628.ipynb
