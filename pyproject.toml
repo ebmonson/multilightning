@@ -35,7 +35,7 @@ Source = "https://github.com/ebmonson/multilightning"
 Repository = "https://github.com/ebmonson/multilightning.git"
 
 [tool.setuptools]
-packages = ["lightning"]
+packages = ["multilightning"]
 
 [project.optional-dependencies]
 dev = [
