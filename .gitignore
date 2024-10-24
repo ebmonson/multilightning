@@ -4,3 +4,8 @@ __pycache__
 *.pyc
 
 docs/build
+
+build/
+*.egg-info
+
+examples/.ipynb_checkpoints
