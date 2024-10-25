@@ -1,6 +1,8 @@
 # MultiLightning
 ---
 
+[![Documentation Status](https://readthedocs.org/projects/multilightning/badge/?version=latest)](https://multilightning.readthedocs.io/en/latest/?badge=latest)
+
 A package for jointly fitting multiple regions of a galaxy with the python version of the `lightning` SED-fitting code.
 
 For nearby galaxies, we often have a subsets of bands in which the galaxy is resolved and unresolved (e.g., the far-IR).
@@ -48,3 +50,8 @@ to clone this repository and install the code locally.
 > [!Note]
 > I may not go to the extra step of uploading this package to pypi/conda-forge since it is a niche, hacky
 > thing on top of `lightning`.
+
+## Documentation
+---
+Online documentation for the package can be found on [its readthedocs page](https://multilightning.readthedocs.io/en/latest/),
+and a compiled PDF version of the documentation is available [in this repository](https://github.com/ebmonson/multilightning/blob/main/docs/multilightning.pdf).
