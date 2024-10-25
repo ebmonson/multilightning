@@ -13,6 +13,6 @@ python:
     install:
         - requirements: docs/requirements.txt
         - requirements: requirements.txt
-        - requirements: git+https://github.com/ebmonson/lightningpy.git@main
+        - requirements: extra_requirements.txt
         - method: pip
           path: .
