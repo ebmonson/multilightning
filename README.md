@@ -21,18 +21,9 @@ This method could be extended to, hypothetically:
 - Separately modeling the nucleus and disk in nearby AGN.
 - Determining the ages of individual star formation regions which are not separated in IR imaging.
 
-## Requirements
-Note that the requirements of `lightning` are implicit, and that `multilightning` has no required
-dependencies beyond those of `lightning`. The below are the explicit dependencies:
+## Installation
 
-- `lightning`
-- `numpy`
-- `scipy`
-- `emcee`
-
-## Installing
-
-Before installing this package, you should install `lightning` by following the instructions in its documentation, optionally
+Before installing this package, you should install `lightning` and its dependencies, by following the instructions in its documentation, optionally
 creating a new virtual environment in e.g. `conda` to install it in.
 
 Then run
@@ -52,6 +43,32 @@ to clone this repository and install the code locally.
 > thing on top of `lightning`.
 
 ## Documentation
----
+
 Online documentation for the package can be found on [its readthedocs page](https://multilightning.readthedocs.io/en/latest/),
 and a compiled PDF version of the documentation is available [in this repository](https://github.com/ebmonson/multilightning/blob/main/docs/multilightning.pdf).
+
+## License
+
+`multilightning` is available under the terms of the MIT license.
+
+## Citation
+
+`multilightning` was originally applied in [Lehmer et al. (2024, in press at ApJS)](https://ui.adsabs.harvard.edu/abs/2024arXiv241019901L/abstract):
+
+```bibtex
+@ARTICLE{2024arXiv241019901L,
+    author = {{Lehmer}, Bret D. and {Monson}, Erik B. and {Eufrasio}, Rafael T. and {Amiri}, Amirnezam and {Doore}, Keith and {Basu-Zych}, Antara and {Garofali}, Kristen and {Oskinova}, Lidia and {Andrews}, Jeff J. and {Antoniou}, Vallia and {Geda}, Robel and {Greene}, Jenny E. and {Kovlakas}, Konstantinos and {Lazzarini}, Margaret and {Richardson}, Chris T.},
+    title = "{An Empirical Framework Characterizing the Metallicity and Star-Formation History Dependence of X-ray Binary Population Formation and Emission in Galaxies}",
+    journal = {arXiv e-prints},
+    keywords = {Astrophysics - Astrophysics of Galaxies, Astrophysics - High Energy Astrophysical Phenomena},
+    year = 2024,
+    month = oct,
+    eid = {arXiv:2410.19901},
+    pages = {arXiv:2410.19901},
+    archivePrefix = {arXiv},
+    eprint = {2410.19901},
+    primaryClass = {astro-ph.GA},
+    adsurl = {https://ui.adsabs.harvard.edu/abs/2024arXiv241019901L},
+    adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+```

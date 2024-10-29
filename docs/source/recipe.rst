@@ -11,7 +11,7 @@ The original motivation for ``multilightning`` is fairly simple:
 
 We must therefore balance the need for spatial information with the need for an IR constraint on the SFH.
 
-In the case of Lehmer et al. (2024), we required good constraints on the SFH over only the disks of some galaxies,
+In the case of `Lehmer et al. (2024) <https://ui.adsabs.harvard.edu/abs/2024arXiv241019901L/abstract>`_, we required good constraints on the SFH over only the disks of some galaxies,
 excluding the nuclear regions: the nuclear regions of star-forming galaxies suffer from crowding of X-ray sources,
 such that individual sources can't be counted. However, these galaxies are not resolved in the available far-IR imaging.
 Thus, instead of attempting to fit the SED and estimate the SFH using only the subset of fluxes that resolve the disk, we forward
